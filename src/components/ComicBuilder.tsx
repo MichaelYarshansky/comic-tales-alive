@@ -1,12 +1,13 @@
-
 import React, { useState } from 'react';
 import { Button } from '@/components/ui/button';
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
 import { Input } from '@/components/ui/input';
 import { Textarea } from '@/components/ui/textarea';
-import { ArrowLeft, ArrowRight, Upload, X, Eye, CreditCard } from 'lucide-react';
+import { ArrowLeft, ArrowRight, Upload, X, Eye, CreditCard, Loader2 } from 'lucide-react';
 import PhotoUpload from '@/components/PhotoUpload';
 import ComicPreview from '@/components/ComicPreview';
+import { generateComicStory, fileToBase64 } from '@/utils/chatgptApi';
+import { useToast } from '@/hooks/use-toast';
 
 interface ComicBuilderProps {
   onBack: () => void;
@@ -27,6 +28,8 @@ const ComicBuilder = ({ onBack }: ComicBuilderProps) => {
   const [comicTitle, setComicTitle] = useState('');
   const [pages, setPages] = useState<ComicPage[]>([]);
   const [showPreview, setShowPreview] = useState(false);
+  const [generatingStory, setGeneratingStory] = useState<string | null>(null);
+  const { toast } = useToast();
 
   const steps = [
     { id: 1, title: 'Comic Setup', desc: 'Choose pages & title' },
@@ -56,10 +59,38 @@ const ComicBuilder = ({ onBack }: ComicBuilderProps) => {
     ));
   };
 
-  const generateStory = (description: string, title: string) => {
-    // Simple story generation - in a real app, this would use AI
-    if (!description) return '';
-    return `In this exciting moment titled "${title}", ${description}. The adventure continues as our hero faces new challenges and discovers amazing things along the way!`;
+  const generateStoryWithAI = async (pageId: string, description: string, title: string, photo?: File) => {
+    if (!description.trim()) return;
+
+    setGeneratingStory(pageId);
+    
+    try {
+      let imageBase64;
+      if (photo) {
+        imageBase64 = await fileToBase64(photo);
+      }
+
+      const generatedStory = await generateComicStory(description, title, imageBase64);
+      updatePage(pageId, { generatedStory });
+      
+      toast({
+        title: "Story Generated!",
+        description: "Your comic story has been created using AI.",
+      });
+    } catch (error) {
+      console.error('Error generating story:', error);
+      toast({
+        title: "Error",
+        description: "Failed to generate story. Using fallback content.",
+        variant: "destructive",
+      });
+      
+      // Fallback to simple generation
+      const fallbackStory = `In this exciting moment titled "${title}", ${description}. The adventure continues as our hero faces new challenges and discovers amazing things along the way!`;
+      updatePage(pageId, { generatedStory: fallbackStory });
+    } finally {
+      setGeneratingStory(null);
+    }
   };
 
   const handleStepComplete = () => {
@@ -193,6 +224,7 @@ const ComicBuilder = ({ onBack }: ComicBuilderProps) => {
               <div className="text-center">
                 <h2 className="text-3xl font-bold text-gray-900 mb-2">Create Your Comic Pages</h2>
                 <p className="text-lg text-gray-600">Add images, titles, and descriptions for each page!</p>
+                <p className="text-sm text-blue-600 mt-2">✨ AI will generate comic stories from your content</p>
               </div>
 
               <div className="grid gap-6">
@@ -221,16 +253,28 @@ const ComicBuilder = ({ onBack }: ComicBuilderProps) => {
                             <label className="block font-semibold text-gray-700 mb-2">Description</label>
                             <Textarea
                               value={page.description}
-                              onChange={(e) => {
-                                const description = e.target.value;
-                                const generatedStory = generateStory(description, page.title);
-                                updatePage(page.id, { description, generatedStory });
-                              }}
+                              onChange={(e) => updatePage(page.id, { description: e.target.value })}
                               placeholder="Describe what's happening in this image..."
                               rows={3}
                               className="border-2"
                             />
                           </div>
+                          <Button
+                            onClick={() => generateStoryWithAI(page.id, page.description, page.title, page.photo)}
+                            disabled={!page.description.trim() || generatingStory === page.id}
+                            className="w-full bg-purple-500 hover:bg-purple-600"
+                          >
+                            {generatingStory === page.id ? (
+                              <>
+                                <Loader2 className="mr-2 h-4 w-4 animate-spin" />
+                                Generating Story...
+                              </>
+                            ) : (
+                              <>
+                                ✨ Generate Comic Story with AI
+                              </>
+                            )}
+                          </Button>
                           {page.generatedStory && (
                             <div className="bg-blue-50 p-3 rounded border-2 border-blue-200">
                               <label className="block font-semibold text-blue-700 mb-1">Generated Story:</label>
