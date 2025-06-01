@@ -14,23 +14,23 @@ interface ComicBuilderProps {
 
 interface ComicPage {
   id: string;
+  title: string;
   photo: File | null;
   photoUrl: string;
-  caption: string;
-  story: string;
+  description: string;
+  generatedStory: string;
 }
 
 const ComicBuilder = ({ onBack }: ComicBuilderProps) => {
   const [currentStep, setCurrentStep] = useState(1);
   const [pageCount, setPageCount] = useState(8);
-  const [coverTitle, setCoverTitle] = useState('');
-  const [coverSummary, setCoverSummary] = useState('');
+  const [comicTitle, setComicTitle] = useState('');
   const [pages, setPages] = useState<ComicPage[]>([]);
   const [showPreview, setShowPreview] = useState(false);
 
   const steps = [
-    { id: 1, title: 'Comic Details', desc: 'Choose pages & title' },
-    { id: 2, title: 'Add Photos', desc: 'Upload your memories' },
+    { id: 1, title: 'Comic Setup', desc: 'Choose pages & title' },
+    { id: 2, title: 'Create Pages', desc: 'Add your content' },
     { id: 3, title: 'Preview', desc: 'Review your comic' },
     { id: 4, title: 'Checkout', desc: 'Complete your order' }
   ];
@@ -40,10 +40,11 @@ const ComicBuilder = ({ onBack }: ComicBuilderProps) => {
     for (let i = 0; i < count; i++) {
       newPages.push({
         id: `page-${i}`,
+        title: '',
         photo: null,
         photoUrl: '',
-        caption: '',
-        story: ''
+        description: '',
+        generatedStory: ''
       });
     }
     setPages(newPages);
@@ -53,6 +54,12 @@ const ComicBuilder = ({ onBack }: ComicBuilderProps) => {
     setPages(prev => prev.map(page => 
       page.id === pageId ? { ...page, ...updates } : page
     ));
+  };
+
+  const generateStory = (description: string, title: string) => {
+    // Simple story generation - in a real app, this would use AI
+    if (!description) return '';
+    return `In this exciting moment titled "${title}", ${description}. The adventure continues as our hero faces new challenges and discovers amazing things along the way!`;
   };
 
   const handleStepComplete = () => {
@@ -67,9 +74,10 @@ const ComicBuilder = ({ onBack }: ComicBuilderProps) => {
   if (showPreview) {
     return (
       <ComicPreview 
+        title={comicTitle}
+        summary={`A ${pageCount}-page comic adventure`}
         pages={pages}
-        coverTitle={coverTitle}
-        coverSummary={coverSummary}
+        characters={[]}
         onBack={() => setShowPreview(false)}
         onProceedToCheckout={() => setCurrentStep(4)}
       />
@@ -86,7 +94,7 @@ const ComicBuilder = ({ onBack }: ComicBuilderProps) => {
               <ArrowLeft className="mr-2 h-4 w-4" />
               Back to Home
             </Button>
-            <h1 className="text-3xl font-bold text-gray-900">Comic Builder</h1>
+            <h1 className="text-3xl font-bold text-gray-900">KEEPICS Builder</h1>
             <Button 
               onClick={() => setShowPreview(true)}
               disabled={pages.length === 0}
@@ -131,7 +139,7 @@ const ComicBuilder = ({ onBack }: ComicBuilderProps) => {
           {currentStep === 1 && (
             <Card className="border-4 border-blue-300">
               <CardHeader className="bg-blue-500 text-white">
-                <CardTitle className="text-2xl">Let's Create Your Comic!</CardTitle>
+                <CardTitle className="text-2xl">Create Your KEEPICS Comic!</CardTitle>
               </CardHeader>
               <CardContent className="p-8">
                 <div className="space-y-6">
@@ -160,32 +168,19 @@ const ComicBuilder = ({ onBack }: ComicBuilderProps) => {
                       Comic Title
                     </label>
                     <Input
-                      value={coverTitle}
-                      onChange={(e) => setCoverTitle(e.target.value)}
+                      value={comicTitle}
+                      onChange={(e) => setComicTitle(e.target.value)}
                       placeholder="e.g., My Amazing Adventure"
-                      className="text-lg p-4 border-2"
-                    />
-                  </div>
-
-                  <div>
-                    <label className="block text-lg font-semibold text-gray-700 mb-2">
-                      Cover Summary
-                    </label>
-                    <Textarea
-                      value={coverSummary}
-                      onChange={(e) => setCoverSummary(e.target.value)}
-                      placeholder="Write a short description of your story..."
-                      rows={4}
                       className="text-lg p-4 border-2"
                     />
                   </div>
 
                   <Button 
                     onClick={handleStepComplete}
-                    disabled={!coverTitle || !coverSummary}
+                    disabled={!comicTitle}
                     className="w-full bg-blue-500 hover:bg-blue-600 text-xl py-4"
                   >
-                    Continue to Photos
+                    Continue to Create Pages
                     <ArrowRight className="ml-2 h-5 w-5" />
                   </Button>
                 </div>
@@ -196,8 +191,8 @@ const ComicBuilder = ({ onBack }: ComicBuilderProps) => {
           {currentStep === 2 && (
             <div className="space-y-6">
               <div className="text-center">
-                <h2 className="text-3xl font-bold text-gray-900 mb-2">Add Your Photos & Stories</h2>
-                <p className="text-lg text-gray-600">Upload photos and add captions to bring your comic to life!</p>
+                <h2 className="text-3xl font-bold text-gray-900 mb-2">Create Your Comic Pages</h2>
+                <p className="text-lg text-gray-600">Add images, titles, and descriptions for each page!</p>
               </div>
 
               <div className="grid gap-6">
@@ -214,24 +209,34 @@ const ComicBuilder = ({ onBack }: ComicBuilderProps) => {
                         />
                         <div className="space-y-4">
                           <div>
-                            <label className="block font-semibold text-gray-700 mb-2">Caption</label>
+                            <label className="block font-semibold text-gray-700 mb-2">Page Title</label>
                             <Input
-                              value={page.caption}
-                              onChange={(e) => updatePage(page.id, { caption: e.target.value })}
-                              placeholder="Add a fun caption..."
+                              value={page.title}
+                              onChange={(e) => updatePage(page.id, { title: e.target.value })}
+                              placeholder="Add a title for this page..."
                               className="border-2"
                             />
                           </div>
                           <div>
-                            <label className="block font-semibold text-gray-700 mb-2">Story</label>
+                            <label className="block font-semibold text-gray-700 mb-2">Description</label>
                             <Textarea
-                              value={page.story}
-                              onChange={(e) => updatePage(page.id, { story: e.target.value })}
-                              placeholder="Tell the story behind this moment..."
+                              value={page.description}
+                              onChange={(e) => {
+                                const description = e.target.value;
+                                const generatedStory = generateStory(description, page.title);
+                                updatePage(page.id, { description, generatedStory });
+                              }}
+                              placeholder="Describe what's happening in this image..."
                               rows={3}
                               className="border-2"
                             />
                           </div>
+                          {page.generatedStory && (
+                            <div className="bg-blue-50 p-3 rounded border-2 border-blue-200">
+                              <label className="block font-semibold text-blue-700 mb-1">Generated Story:</label>
+                              <p className="text-sm text-blue-800">{page.generatedStory}</p>
+                            </div>
+                          )}
                         </div>
                       </div>
                     </CardContent>
@@ -252,15 +257,24 @@ const ComicBuilder = ({ onBack }: ComicBuilderProps) => {
           {currentStep === 4 && (
             <Card className="border-4 border-green-300">
               <CardHeader className="bg-green-500 text-white">
-                <CardTitle className="text-2xl">Complete Your Order</CardTitle>
+                <CardTitle className="text-2xl">Complete Your KEEPICS Order</CardTitle>
               </CardHeader>
               <CardContent className="p-8">
                 <div className="text-center space-y-6">
                   <div className="bg-yellow-100 p-6 rounded-lg border-2 border-yellow-400">
                     <h3 className="text-2xl font-bold text-gray-900 mb-2">Order Summary</h3>
-                    <p className="text-lg">"{coverTitle}" - {pageCount} pages</p>
+                    <p className="text-lg">"{comicTitle}" - {pageCount} pages</p>
                     <p className="text-3xl font-bold text-green-600 mt-4">$29.99</p>
                     <p className="text-sm text-gray-600">Including worldwide shipping</p>
+                  </div>
+
+                  <div className="bg-blue-50 p-4 rounded-lg border border-blue-200">
+                    <h4 className="font-semibold text-blue-800 mb-2">Bulk Discounts Available!</h4>
+                    <div className="text-sm text-blue-700 space-y-1">
+                      <p>• Buy 2 comics → 5% off</p>
+                      <p>• Buy 3 comics → 10% off</p>
+                      <p>• Buy 4+ comics → 20% off</p>
+                    </div>
                   </div>
 
                   <Button className="w-full bg-red-500 hover:bg-red-600 text-xl py-4">
@@ -269,7 +283,7 @@ const ComicBuilder = ({ onBack }: ComicBuilderProps) => {
                   </Button>
 
                   <p className="text-sm text-gray-600">
-                    Your comic will be professionally printed and shipped to your address within 7-10 business days.
+                    Your KEEPICS comic will be delivered as a high-quality PDF within minutes!
                   </p>
                 </div>
               </CardContent>
