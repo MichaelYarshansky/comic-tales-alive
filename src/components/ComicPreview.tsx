@@ -1,4 +1,3 @@
-
 import React from 'react';
 import { Card, CardContent } from '@/components/ui/card';
 import { Button } from '@/components/ui/button';
@@ -11,6 +10,7 @@ interface ComicPage {
   photoUrl: string;
   description: string;
   generatedStory: string;
+  generatedImageUrl: string; // Add the new field
 }
 
 interface ComicPreviewProps {
@@ -76,30 +76,45 @@ const ComicPreview = ({ title, summary, pages, characters, onBack, onProceedToCh
                 </div>
                 
                 {/* Main Comic Area */}
-                <div className="bg-yellow-50 border-4 border-yellow-300 rounded-lg p-4 mb-4 min-h-64">
+                <div className="bg-yellow-50 border-4 border-yellow-300 rounded-lg p-4 mb-4 min-h-64 relative">
                   {/* Original Image - Top Right Corner */}
                   {page.photoUrl && (
-                    <div className="float-right ml-3 mb-2">
+                    <div className="absolute top-2 right-2 z-10">
                       <img
                         src={page.photoUrl}
                         alt={`Original for page ${index + 1}`}
-                        className="w-16 h-16 object-cover rounded border-2 border-gray-400"
+                        className="w-12 h-12 object-cover rounded border-2 border-gray-400"
                       />
                       <p className="text-xs text-gray-500 text-center mt-1">Original</p>
                     </div>
                   )}
                   
+                  {/* Generated Comic Image - Main Display */}
+                  {page.generatedImageUrl ? (
+                    <div className="w-full h-48 mb-3">
+                      <img
+                        src={page.generatedImageUrl}
+                        alt={`Comic panel ${index + 1}`}
+                        className="w-full h-full object-cover rounded border-2 border-gray-300"
+                      />
+                    </div>
+                  ) : (
+                    <div className="w-full h-48 mb-3 bg-gray-200 border-2 border-gray-300 rounded flex items-center justify-center">
+                      <p className="text-gray-500">No comic image generated</p>
+                    </div>
+                  )}
+                  
                   {/* Generated Story */}
                   {page.generatedStory && (
-                    <div className="bg-white border-2 border-gray-300 rounded p-3 shadow-sm">
-                      <p className="text-gray-800 text-sm leading-relaxed">{page.generatedStory}</p>
+                    <div className="bg-white border-2 border-gray-300 rounded p-2 shadow-sm">
+                      <p className="text-gray-800 text-xs leading-relaxed">{page.generatedStory}</p>
                     </div>
                   )}
                   
                   {/* Description if no generated story */}
                   {!page.generatedStory && page.description && (
-                    <div className="bg-blue-100 border-2 border-blue-300 rounded p-3">
-                      <p className="text-blue-800 text-sm italic">"{page.description}"</p>
+                    <div className="bg-blue-100 border-2 border-blue-300 rounded p-2">
+                      <p className="text-blue-800 text-xs italic">"{page.description}"</p>
                     </div>
                   )}
                 </div>

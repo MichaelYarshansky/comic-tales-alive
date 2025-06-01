@@ -6,7 +6,7 @@ import { Textarea } from '@/components/ui/textarea';
 import { ArrowLeft, ArrowRight, Upload, X, Eye, CreditCard, Loader2 } from 'lucide-react';
 import PhotoUpload from '@/components/PhotoUpload';
 import ComicPreview from '@/components/ComicPreview';
-import { generateComicStory, fileToBase64 } from '@/utils/chatgptApi';
+import { generateComicImage, generateComicStory, fileToBase64 } from '@/utils/chatgptApi';
 import { useToast } from '@/hooks/use-toast';
 
 interface ComicBuilderProps {
@@ -20,6 +20,7 @@ interface ComicPage {
   photoUrl: string;
   description: string;
   generatedStory: string;
+  generatedImageUrl: string; // New field for AI-generated comic image
 }
 
 const ComicBuilder = ({ onBack }: ComicBuilderProps) => {
@@ -29,6 +30,7 @@ const ComicBuilder = ({ onBack }: ComicBuilderProps) => {
   const [pages, setPages] = useState<ComicPage[]>([]);
   const [showPreview, setShowPreview] = useState(false);
   const [generatingStory, setGeneratingStory] = useState<string | null>(null);
+  const [generatingImage, setGeneratingImage] = useState<string | null>(null);
   const { toast } = useToast();
 
   const steps = [
@@ -47,7 +49,8 @@ const ComicBuilder = ({ onBack }: ComicBuilderProps) => {
         photo: null,
         photoUrl: '',
         description: '',
-        generatedStory: ''
+        generatedStory: '',
+        generatedImageUrl: '' // Initialize new field
       });
     }
     setPages(newPages);
@@ -57,6 +60,36 @@ const ComicBuilder = ({ onBack }: ComicBuilderProps) => {
     setPages(prev => prev.map(page => 
       page.id === pageId ? { ...page, ...updates } : page
     ));
+  };
+
+  const generateComicImageWithAI = async (pageId: string, description: string, title: string, photo?: File) => {
+    if (!description.trim()) return;
+
+    setGeneratingImage(pageId);
+    
+    try {
+      let imageBase64;
+      if (photo) {
+        imageBase64 = await fileToBase64(photo);
+      }
+
+      const generatedImageUrl = await generateComicImage(description, title, imageBase64);
+      updatePage(pageId, { generatedImageUrl });
+      
+      toast({
+        title: "Comic Image Generated!",
+        description: "Your comic-style image has been created using AI.",
+      });
+    } catch (error) {
+      console.error('Error generating comic image:', error);
+      toast({
+        title: "Error",
+        description: "Failed to generate comic image. Please try again.",
+        variant: "destructive",
+      });
+    } finally {
+      setGeneratingImage(null);
+    }
   };
 
   const generateStoryWithAI = async (pageId: string, description: string, title: string, photo?: File) => {
@@ -85,7 +118,6 @@ const ComicBuilder = ({ onBack }: ComicBuilderProps) => {
         variant: "destructive",
       });
       
-      // Fallback to simple generation
       const fallbackStory = `In this exciting moment titled "${title}", ${description}. The adventure continues as our hero faces new challenges and discovers amazing things along the way!`;
       updatePage(pageId, { generatedStory: fallbackStory });
     } finally {
@@ -179,7 +211,7 @@ const ComicBuilder = ({ onBack }: ComicBuilderProps) => {
                       How many pages do you want?
                     </label>
                     <div className="flex gap-3">
-                      {[4, 8, 12, 16].map(count => (
+                      {[1, 4, 8, 12, 16].map(count => (
                         <Button
                           key={count}
                           onClick={() => setPageCount(count)}
@@ -188,7 +220,7 @@ const ComicBuilder = ({ onBack }: ComicBuilderProps) => {
                             pageCount === count ? 'bg-blue-500' : ''
                           }`}
                         >
-                          {count} pages
+                          {count} page{count > 1 ? 's' : ''}
                         </Button>
                       ))}
                     </div>
@@ -224,7 +256,7 @@ const ComicBuilder = ({ onBack }: ComicBuilderProps) => {
               <div className="text-center">
                 <h2 className="text-3xl font-bold text-gray-900 mb-2">Create Your Comic Pages</h2>
                 <p className="text-lg text-gray-600">Add images, titles, and descriptions for each page!</p>
-                <p className="text-sm text-blue-600 mt-2">✨ AI will generate comic stories from your content</p>
+                <p className="text-sm text-blue-600 mt-2">✨ AI will generate comic-style images and stories from your content</p>
               </div>
 
               <div className="grid gap-6">
@@ -259,22 +291,46 @@ const ComicBuilder = ({ onBack }: ComicBuilderProps) => {
                               className="border-2"
                             />
                           </div>
-                          <Button
-                            onClick={() => generateStoryWithAI(page.id, page.description, page.title, page.photo)}
-                            disabled={!page.description.trim() || generatingStory === page.id}
-                            className="w-full bg-purple-500 hover:bg-purple-600"
-                          >
-                            {generatingStory === page.id ? (
-                              <>
-                                <Loader2 className="mr-2 h-4 w-4 animate-spin" />
-                                Generating Story...
-                              </>
-                            ) : (
-                              <>
-                                ✨ Generate Comic Story with AI
-                              </>
-                            )}
-                          </Button>
+                          <div className="grid grid-cols-2 gap-2">
+                            <Button
+                              onClick={() => generateComicImageWithAI(page.id, page.description, page.title, page.photo)}
+                              disabled={!page.description.trim() || generatingImage === page.id}
+                              className="bg-red-500 hover:bg-red-600"
+                            >
+                              {generatingImage === page.id ? (
+                                <>
+                                  <Loader2 className="mr-2 h-4 w-4 animate-spin" />
+                                  Generating...
+                                </>
+                              ) : (
+                                <>
+                                  🎨 Generate Comic Image
+                                </>
+                              )}
+                            </Button>
+                            <Button
+                              onClick={() => generateStoryWithAI(page.id, page.description, page.title, page.photo)}
+                              disabled={!page.description.trim() || generatingStory === page.id}
+                              className="bg-purple-500 hover:bg-purple-600"
+                            >
+                              {generatingStory === page.id ? (
+                                <>
+                                  <Loader2 className="mr-2 h-4 w-4 animate-spin" />
+                                  Generating...
+                                </>
+                              ) : (
+                                <>
+                                  ✨ Generate Story
+                                </>
+                              )}
+                            </Button>
+                          </div>
+                          {page.generatedImageUrl && (
+                            <div className="bg-red-50 p-3 rounded border-2 border-red-200">
+                              <label className="block font-semibold text-red-700 mb-1">Generated Comic Image:</label>
+                              <img src={page.generatedImageUrl} alt="Generated comic" className="w-full h-32 object-cover rounded" />
+                            </div>
+                          )}
                           {page.generatedStory && (
                             <div className="bg-blue-50 p-3 rounded border-2 border-blue-200">
                               <label className="block font-semibold text-blue-700 mb-1">Generated Story:</label>

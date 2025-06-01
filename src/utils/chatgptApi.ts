@@ -1,4 +1,3 @@
-
 interface ChatGPTResponse {
   choices: Array<{
     message: {
@@ -7,6 +6,51 @@ interface ChatGPTResponse {
   }>;
 }
 
+interface ImageGenerationResponse {
+  data: Array<{
+    url: string;
+    b64_json?: string;
+  }>;
+}
+
+export const generateComicImage = async (description: string, title: string, imageBase64?: string): Promise<string> => {
+  try {
+    // Create a detailed prompt for comic-style image generation
+    const prompt = `Create a comic book style illustration based on this description: "${description}" with the title "${title}". 
+    Style: Comic book art, vibrant colors, bold outlines, dynamic composition, speech bubbles if needed, action-packed scene.
+    Make it look like a professional comic book panel with dramatic lighting and engaging character poses.
+    ${imageBase64 ? 'Use the provided reference image as inspiration for the scene composition and characters.' : ''}`;
+
+    const response = await fetch('https://api.openai.com/v1/images/generations', {
+      method: 'POST',
+      headers: {
+        'Content-Type': 'application/json',
+        'Authorization': `Bearer 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`
+      },
+      body: JSON.stringify({
+        model: 'dall-e-3',
+        prompt: prompt,
+        n: 1,
+        size: '1024x1024',
+        quality: 'standard',
+        style: 'vivid'
+      })
+    });
+
+    if (!response.ok) {
+      throw new Error(`API call failed: ${response.statusText}`);
+    }
+
+    const data: ImageGenerationResponse = await response.json();
+    return data.data[0]?.url || '';
+  } catch (error) {
+    console.error('Error generating comic image:', error);
+    // Return a fallback placeholder image URL
+    return `https://via.placeholder.com/400x400/FFE4B5/8B4513?text=${encodeURIComponent(title || 'Comic Panel')}`;
+  }
+};
+
+// Keep the story generation function as backup
 export const generateComicStory = async (description: string, title: string, imageBase64?: string): Promise<string> => {
   try {
     const messages = [
@@ -20,7 +64,6 @@ export const generateComicStory = async (description: string, title: string, ima
       }
     ];
 
-    // If we have an image, add it to the message (for future vision support)
     if (imageBase64) {
       messages.push({
         role: "user",
@@ -43,7 +86,7 @@ export const generateComicStory = async (description: string, title: string, ima
       method: 'POST',
       headers: {
         'Content-Type': 'application/json',
-        'Authorization': `Bearer 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`
+        'Authorization': `Bearer sk-proj-AnLBOzgPGJKIu3jUunIca3qPU3tNYoKuYnhhayqsJfTKYAHE9dT0uvXP9ANKqr84mNVd94fyodT3BlbkFJ0edsLoAcRZzONRANvgKs14OUs6iWQ6WV55OAALM6qJIL-NOlp0DQkQCwdaIs3dMWr28o4wzbP4A`
       },
       body: JSON.stringify({
         model: 'gpt-4o-mini',
@@ -72,7 +115,6 @@ export const fileToBase64 = (file: File): Promise<string> => {
     reader.readAsDataURL(file);
     reader.onload = () => {
       const base64 = reader.result as string;
-      // Remove the data:image/jpeg;base64, prefix
       const base64Data = base64.split(',')[1];
       resolve(base64Data);
     };
