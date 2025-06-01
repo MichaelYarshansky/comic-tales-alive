@@ -26,7 +26,7 @@ export const generateComicImage = async (description: string, title: string, ima
       method: 'POST',
       headers: {
         'Content-Type': 'application/json',
-        'Authorization': `Bearer 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`
+        'Authorization': `Bearer <openAI key>`
       },
       body: JSON.stringify({
         model: 'dall-e-3',
