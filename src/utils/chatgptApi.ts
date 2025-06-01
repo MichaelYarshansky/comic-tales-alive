@@ -16,10 +16,11 @@ interface ImageGenerationResponse {
 export const generateComicImage = async (description: string, title: string, imageBase64?: string): Promise<string> => {
   try {
     // Create a detailed prompt for comic-style image generation
-    const prompt = `Create a comic book style illustration based on this description: "${description}" with the title "${title}". 
+    const prompt = `Create a comic book style illustration based on the attached photo and this description: "${description}" with the title "${title}". 
     Style: Comic book art, vibrant colors, bold outlines, dynamic composition, speech bubbles if needed, action-packed scene.
-    Make it look like a professional comic book panel with dramatic lighting and engaging character poses.
-    ${imageBase64 ? 'Use the provided reference image as inspiration for the scene composition and characters.' : ''}`;
+    Make it look like a professional comic book panel with dramatic lighting and engaging character poses. try to keep the comics charecters as  resemble as possible to the personas in the original picture.
+    divide each comics page into (at least) 4 sections and add at least 1 text bubble. 
+    ${imageBase64 ? 'Use the provided reference image as inspiration for the scene composition and characters.' : ''}`; 
 
     const response = await fetch('https://api.openai.com/v1/images/generations', {
       method: 'POST',
