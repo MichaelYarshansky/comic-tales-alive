@@ -43,7 +43,7 @@ export const generateComicStory = async (description: string, title: string, ima
       method: 'POST',
       headers: {
         'Content-Type': 'application/json',
-        'Authorization': `Bearer ${import.meta.env.VITE_OPENAI_API_KEY}`
+        'Authorization': `Bearer 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`
       },
       body: JSON.stringify({
         model: 'gpt-4o-mini',
